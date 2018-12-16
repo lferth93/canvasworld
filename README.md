@@ -13,6 +13,8 @@ go build github.com/lferth93/canvasworld
 ## Help
 Canvasworld loads w1.json file and shows evolution
 ### Controls
-* Up arrow to speedup the simulation
-* Down arrow to slowdown the simulation
-* L Key to reload w1.json file
+Key | Action
+--- | ------
+Up arrow | Speedup the simulation
+Down arrow | slowdown the simulation
+L | reload w1.json file
