@@ -6,8 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
-
-	"github.com/lferth93/util/hashset"
 )
 
 //constantes para las diferentes tipos de celdas y colores
@@ -24,28 +22,41 @@ const (
 	BLOCK
 )
 
-//funcion que determina la interaccion entre dos colores
-func addColor(c1, c2 int8) int8 {
-	//alguno de los dos colores es un bloque
-	if c1 == BLOCK || c2 == BLOCK {
-		return BLOCK
+//Color type uint8
+type Color uint8
+
+//Determina el color resultante de la mezcla
+func addColor(cs [5]Color) (nc Color) {
+	cnt := []int{0, 0, 0}
+	cl := []Color{RED, GREEN, BLUE}
+	max := 0
+	for _, c := range cs {
+		for i := range cl {
+			if c&cl[i] > 0 {
+				cnt[i]++
+			}
+		}
 	}
-	//comparten algun color primario y el resultado es el color dominante en la mezcla
-	if c1&c2 != 0 {
-		return c1 & c2
+	for i := range cnt {
+		if cnt[i] > max {
+			max = cnt[i]
+		}
 	}
-	//no comparten ningun color primario
-	return c1 | c2
+	for i := range cnt {
+		if cnt[i] == max {
+			nc |= cl[i]
+		}
+	}
+	return
 }
 
 //World parecido a una clase de java
 type World struct {
-	s       [][]int8         //matriz para guardar el estado del mundo
-	a       [][]int8         //automata para saber como pintar usa Wireworld con vecindad de Von Neumann
-	life    int              //generacioes que tiene de vida el mundo
-	w, h    int              //dimensiones del mundo
-	final   bool             //para saber si el mundo ya llego a un estado en el que no va a cambiar
-	activos *hashset.Hashset //set que guarda las celdas que pueden pintar celdas vecinas que seran analizadas cuando se genere el siguiente estado
+	s     [][]Color //matriz para guardar el estado del mundo
+	a     [][]int8  //automata para saber como pintar usa Wireworld con vecindad de Von Neumann
+	life  int       //generacioes que tiene de vida el mundo
+	w, h  int       //dimensiones del mundo
+	final bool      //para saber si el mundo ya llego a un estado en el que no va a cambiar
 }
 
 //NewWorld equivalente a un constructor de java
@@ -53,9 +64,9 @@ func NewWorld(w, h int) *World {
 	var nw World
 	nw.w, nw.h = w, h
 	nw.final = false
-	nw.s = make([][]int8, h)
+	nw.s = make([][]Color, h)
 	for i := range nw.s {
-		nw.s[i] = make([]int8, w)
+		nw.s[i] = make([]Color, w)
 	}
 
 	//rodea el mundo en blanco con bloques para delimitarlo
@@ -77,15 +88,9 @@ func NewWorld(w, h int) *World {
 
 //Init metodo para inicializar alguna celda dentro del limite del mundo
 //las celdas usables se indexan de (1,1) a (w,h)
-func (w *World) Init(x, y int, c int8) {
+func (w *World) Init(x, y int, c Color) {
 	if 0 < x && x < w.w-1 && 0 < y && y < w.h-1 {
 		w.s[y][x] = c
-		if c != BLOCK && c != BLACK {
-			if w.activos == nil {
-				w.activos = hashset.New()
-			}
-			w.activos.Insert([2]int{x, y})
-		}
 	}
 }
 
@@ -145,7 +150,6 @@ func (w *World) nextAutomata() {
 func (w *World) String() string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("Life:%d\n", w.life))
-	sb.WriteString(fmt.Sprintf("Actives:%d\n", w.activos.Size()))
 	sb.WriteString(w.hashString())
 	sb.WriteRune('\n')
 	for i := range w.s {
@@ -157,26 +161,39 @@ func (w *World) String() string {
 //Next intenta avanzar el mundo al siguiente estado y devuelve true si es posible avanzar y false si el mundo llego a un estado final
 func (w *World) Next() bool {
 	if !w.final {
-		nw := make([][]int8, w.h)
+		nw := make([][]Color, w.h)
 		for i := range nw {
-			nw[i] = make([]int8, w.w)
+			nw[i] = make([]Color, w.w)
 		}
 		for i := range w.a {
-			for j, a := range w.a[i] {
-				nw[i][j] = addColor(w.s[i][j], nw[i][j])
-				if a == 1 {
-					if w.s[i-1][j] != BLOCK && w.a[i-1][j] == 0 {
-						nw[i-1][j] = addColor(nw[i-1][j], w.s[i][j])
+			for j, s := range w.a[i] {
+				if s == 0 {
+					count := 0
+					var cs [5]Color
+					cs[0] = w.s[i][j]
+					if w.a[i][j-1] == 1 {
+						cs[1] = w.s[i][j-1]
+						count++
 					}
-					if w.s[i+1][j] != BLOCK && w.a[i+1][j] == 0 {
-						nw[i+1][j] = addColor(nw[i+1][j], w.s[i][j])
+					if w.a[i][j+1] == 1 {
+						cs[2] = w.s[i][j+1]
+						count++
 					}
-					if w.s[i][j-1] != BLOCK && w.a[i][j-1] == 0 {
-						nw[i][j-1] = addColor(nw[i][j-1], w.s[i][j])
+					if w.a[i-1][j] == 1 {
+						cs[3] = w.s[i-1][j]
+						count++
 					}
-					if w.s[i][j+1] != BLOCK && w.a[i][j+1] == 0 {
-						nw[i][j+1] = addColor(nw[i][j+1], w.s[i][j])
+					if w.a[i+1][j] == 1 {
+						cs[4] = w.s[i+1][j]
+						count++
 					}
+					if count > 0 {
+						nw[i][j] = addColor(cs)
+					} else {
+						nw[i][j] = w.s[i][j]
+					}
+				} else {
+					nw[i][j] = w.s[i][j]
 				}
 			}
 		}
@@ -184,18 +201,6 @@ func (w *World) Next() bool {
 		w.nextAutomata()
 	}
 	return false
-}
-
-//revisa si la celda de cordenadas x,y puede pintar alguna de sus celdas vecinas
-func (w *World) evolve(x, y int) bool {
-	c := w.s[y][x]
-	if c == BLOCK || c == BLACK {
-		return false
-	}
-	return (w.s[y-1][x] != c && w.s[y-1][x] != BLOCK) ||
-		(w.s[y][x-1] != c && w.s[y][x-1] != BLOCK) ||
-		(w.s[y+1][x] != c && w.s[y+1][x] != BLOCK) ||
-		(w.s[y][x+1] != c && w.s[y][x+1] != BLOCK)
 }
 
 func (w *World) hashString() string {
@@ -216,20 +221,12 @@ func LoadFile(path string) *World {
 		fmt.Println(err)
 		return nil
 	}
-	var wd [][]int8
+	var wd [][]Color
 
 	err = json.Unmarshal(buf, &wd)
 	w.s = wd
 	w.h = len(wd)
 	w.w = len(wd[0])
-	w.activos = hashset.New()
-	for y, r := range w.s {
-		for x, c := range r {
-			if c != BLOCK && c != BLACK {
-				w.activos.Insert([2]int{x, y})
-			}
-		}
-	}
 	w.initAutomata()
 	return &w
 }
@@ -240,6 +237,5 @@ func (w *World) Save(path string) error {
 	if err != nil {
 		return err
 	}
-	err = ioutil.WriteFile(path, buf, os.ModeDir)
-	return err
+	return ioutil.WriteFile(path, buf, os.ModeDir)
 }
