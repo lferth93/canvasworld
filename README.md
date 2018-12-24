@@ -7,7 +7,8 @@ go get -u github.com/lferth93/canvasworld
 
 ## Build
 ````
-go build github.com/lferth93/canvasworld
+cd $GOPATH/src/github.com/lferth93/canvasworld
+go build 
 ````
 
 ## Help
@@ -18,3 +19,4 @@ Key | Action
 Up arrow | Speedup the simulation
 Down arrow | slowdown the simulation
 L | reload w1.json file
+Space | Pause simulation
