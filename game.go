@@ -1,5 +1,9 @@
 package main
 
+/*
+#cgo LDFLAGS: -mwindows
+*/
+
 import (
 	"fmt"
 
@@ -39,6 +43,9 @@ type game struct {
 func newGame(w, h, fps int32) *game {
 	g := game{h: h, w: w, fps: fps, step: fps}
 	rl.InitWindow(w, h+pad, "CanvasWorld Test")
+	icon := rl.LoadImage("ico.PNG")
+	rl.SetWindowIcon(*icon)
+	rl.UnloadImage(icon)
 	rl.SetTargetFPS(fps)
 	return &g
 }
@@ -82,22 +89,26 @@ func (g *game) update() {
 	}
 }
 
-func (g *game) paint() {
+func (g *game) draw() {
 	rl.BeginDrawing()
 	rl.ClearBackground(rl.White)
 	rl.DrawFPS(0, 0)
 	rl.DrawText(fmt.Sprintf("Step: %.4fs", float32(g.step)/float32(g.fps)), 100, 0, 20, rl.Black)
+	y := int32(pad)
 	for i := range g.world.s {
+		x := g.wpad
 		for j, c := range g.world.s[i] {
-			rl.DrawRectangle(g.l*int32(j)+g.wpad, g.l*int32(i)+pad, g.l, g.l, color[c])
-			rl.DrawRectangleLines(g.l*int32(j)+g.wpad, g.l*int32(i)+pad, g.l, g.l, rl.Gray)
+			rl.DrawRectangle(x, y, g.l, g.l, color[c])
+			rl.DrawRectangleLines(x, y, g.l, g.l, rl.Gray)
 			if g.world.a[i][j] == 1 {
-				rl.DrawCircle(g.l*int32(j)+g.l/2+g.wpad, g.l*int32(i)+pad+g.l/2, g.r1, rl.Green)
+				rl.DrawCircle(x+g.l/2, y+g.l/2, g.r1, rl.Green)
 			}
 			if g.world.a[i][j] == 2 {
-				rl.DrawCircle(g.l*int32(j)+g.l/2+g.wpad, g.l*int32(i)+pad+g.l/2, g.r2, rl.Green)
+				rl.DrawCircle(x+g.l/2, y+g.l/2, g.r2, rl.Green)
 			}
+			x += g.l
 		}
+		y += g.l
 	}
 	rl.EndDrawing()
 }

@@ -10,7 +10,7 @@ func main() {
 	for !rl.WindowShouldClose() {
 		game.readInput()
 		game.update()
-		game.paint()
+		game.draw()
 	}
 	rl.CloseWindow()
 
