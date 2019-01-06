@@ -1,9 +1,5 @@
 package main
 
-/*
-#cgo LDFLAGS: -mwindows
-*/
-
 import (
 	"fmt"
 

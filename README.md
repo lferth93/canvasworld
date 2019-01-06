@@ -1,4 +1,5 @@
-# canvasworld
+# Canvasworld
+Canvasworld is a puzzle game based on wirewolrd celullar automata
 
 ## Install
 ````
@@ -17,6 +18,6 @@ Canvasworld loads w1.json file and shows evolution
 Key | Action
 --- | ------
 Up arrow | Speedup the simulation
-Down arrow | slowdown the simulation
-L | reload w1.json file
-Space | Pause simulation
+Down arrow | Slowdown the simulation
+L | Reload w1.json file
+Space | Pause or resume simulation
