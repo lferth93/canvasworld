@@ -22,13 +22,23 @@ const (
 	BLOCK
 )
 
+const (
+	canvas = iota
+	head
+	tail
+	empty
+)
+
 //Color type uint8
-type Color uint8
+type color uint8
+
+//State type uint8
+type state uint8
 
 //Determina el color resultante de la mezcla
-func addColor(cs [5]Color) (nc Color) {
+func addColor(cs [5]color) (nc color) {
 	cnt := []int{0, 0, 0}
-	cl := []Color{RED, GREEN, BLUE}
+	cl := []color{RED, GREEN, BLUE}
 	max := 0
 	for _, c := range cs {
 		for i := range cl {
@@ -52,8 +62,8 @@ func addColor(cs [5]Color) (nc Color) {
 
 //World parecido a una clase de java
 type World struct {
-	s     [][]Color //matriz para guardar el estado del mundo
-	a     [][]int8  //automata para saber como pintar usa Wireworld con vecindad de Von Neumann
+	s     [][]color //matriz para guardar el estado del mundo
+	a     [][]state //automata para saber como pintar usa Wireworld con vecindad de Von Neumann
 	life  int       //generacioes que tiene de vida el mundo
 	w, h  int       //dimensiones del mundo
 	final bool      //para saber si el mundo ya llego a un estado en el que no va a cambiar
@@ -64,9 +74,9 @@ func NewWorld(w, h int) *World {
 	var nw World
 	nw.w, nw.h = w, h
 	nw.final = false
-	nw.s = make([][]Color, h)
+	nw.s = make([][]color, h)
 	for i := range nw.s {
-		nw.s[i] = make([]Color, w)
+		nw.s[i] = make([]color, w)
 	}
 
 	//rodea el mundo en blanco con bloques para delimitarlo
@@ -88,58 +98,58 @@ func NewWorld(w, h int) *World {
 
 //Init metodo para inicializar alguna celda dentro del limite del mundo
 //las celdas usables se indexan de (1,1) a (w,h)
-func (w *World) Init(x, y int, c Color) {
+func (w *World) Init(x, y int, c color) {
 	if 0 < x && x < w.w-1 && 0 < y && y < w.h-1 {
 		w.s[y][x] = c
 	}
 }
 
 func (w *World) initAutomata() {
-	w.a = make([][]int8, w.h)
+	w.a = make([][]state, w.h)
 	for i := range w.a {
-		w.a[i] = make([]int8, w.w)
+		w.a[i] = make([]state, w.w)
 	}
 	for i := range w.s {
 		for j := range w.s[i] {
 			switch {
 			case w.s[i][j] == 8:
-				w.a[i][j] = -1
+				w.a[i][j] = empty
 			case w.s[i][j] > 0:
-				w.a[i][j] = 1
+				w.a[i][j] = head
 			}
 		}
 	}
 }
 
 func (w *World) nextAutomata() {
-	na := make([][]int8, w.h)
+	na := make([][]state, w.h)
 	for i := range w.a {
-		na[i] = make([]int8, w.w)
+		na[i] = make([]state, w.w)
 		for j := range w.a[i] {
 			switch w.a[i][j] {
-			case -1:
-				na[i][j] = -1
-			case 0:
+			case empty:
+				na[i][j] = empty
+			case canvas:
 				c := 0
-				if w.a[i-1][j] == 1 {
+				if w.a[i-1][j] == head {
 					c++
 				}
-				if w.a[i+1][j] == 1 {
+				if w.a[i+1][j] == head {
 					c++
 				}
-				if w.a[i][j-1] == 1 {
+				if w.a[i][j-1] == head {
 					c++
 				}
-				if w.a[i][j+1] == 1 {
+				if w.a[i][j+1] == head {
 					c++
 				}
 				if 0 < c && c < 4 {
-					na[i][j] = 1
+					na[i][j] = head
 				}
-			case 1:
-				na[i][j] = 2
-			case 2:
-				na[i][j] = 0
+			case head:
+				na[i][j] = tail
+			case tail:
+				na[i][j] = canvas
 			}
 		}
 	}
@@ -161,29 +171,29 @@ func (w *World) String() string {
 //Next intenta avanzar el mundo al siguiente estado y devuelve true si es posible avanzar y false si el mundo llego a un estado final
 func (w *World) Next() bool {
 	if !w.final {
-		nw := make([][]Color, w.h)
+		nw := make([][]color, w.h)
 		for i := range nw {
-			nw[i] = make([]Color, w.w)
+			nw[i] = make([]color, w.w)
 		}
 		for i := range w.a {
 			for j, s := range w.a[i] {
-				if s == 0 {
+				if s == canvas {
 					count := 0
-					var cs [5]Color
+					var cs [5]color
 					cs[0] = w.s[i][j]
-					if w.a[i][j-1] == 1 {
+					if w.a[i][j-1] == head {
 						cs[1] = w.s[i][j-1]
 						count++
 					}
-					if w.a[i][j+1] == 1 {
+					if w.a[i][j+1] == head {
 						cs[2] = w.s[i][j+1]
 						count++
 					}
-					if w.a[i-1][j] == 1 {
+					if w.a[i-1][j] == head {
 						cs[3] = w.s[i-1][j]
 						count++
 					}
-					if w.a[i+1][j] == 1 {
+					if w.a[i+1][j] == head {
 						cs[4] = w.s[i+1][j]
 						count++
 					}
@@ -221,7 +231,7 @@ func LoadFile(path string) *World {
 		fmt.Println(err)
 		return nil
 	}
-	var wd [][]Color
+	var wd [][]color
 
 	err = json.Unmarshal(buf, &wd)
 	w.s = wd

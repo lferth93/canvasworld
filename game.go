@@ -7,15 +7,15 @@ import (
 )
 
 var (
-	color = []rl.Color{
-		rl.Black,
-		rl.Red,
-		rl.Lime,
-		rl.Yellow,
-		rl.DarkBlue,
-		rl.Magenta,
-		rl.SkyBlue,
+	colors = []rl.Color{
 		rl.White,
+		rl.Red,
+		rl.Yellow,
+		rl.Orange,
+		rl.DarkBlue,
+		rl.DarkPurple,
+		rl.Lime,
+		rl.Black,
 		rl.Beige}
 )
 
@@ -94,12 +94,12 @@ func (g *game) draw() {
 	for i := range g.world.s {
 		x := g.wpad
 		for j, c := range g.world.s[i] {
-			rl.DrawRectangle(x, y, g.l, g.l, color[c])
+			rl.DrawRectangle(x, y, g.l, g.l, colors[c])
 			rl.DrawRectangleLines(x, y, g.l, g.l, rl.Gray)
-			if g.world.a[i][j] == 1 {
+			if g.world.a[i][j] == head {
 				rl.DrawCircle(x+g.l/2, y+g.l/2, g.r1, rl.Green)
 			}
-			if g.world.a[i][j] == 2 {
+			if g.world.a[i][j] == tail {
 				rl.DrawCircle(x+g.l/2, y+g.l/2, g.r2, rl.Green)
 			}
 			x += g.l

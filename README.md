@@ -1,5 +1,5 @@
 # Canvasworld
-Canvasworld is a puzzle game based on wirewolrd celullar automata
+Canvasworld is a puzzle game based on wireworld celullar automaton
 
 ## Install
 ````
